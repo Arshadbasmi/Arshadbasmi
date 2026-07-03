@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f5f5f7">
+<title>AB Workspace — Mail, Calendar &amp; More</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <!-- Sidebar / Dock -->
+  <nav id="sidebar">
+    <div class="brand">
+      <div class="brand-icon">AB</div>
+      <div class="brand-name">Workspace</div>
+    </div>
+    <button class="nav-btn active" data-app="mail"><span class="nav-icon">✉️</span><span class="nav-label">Mail</span><span class="nav-badge" id="badge-mail"></span></button>
+    <button class="nav-btn" data-app="calendar"><span class="nav-icon">📅</span><span class="nav-label">Calendar</span></button>
+    <button class="nav-btn" data-app="reminders"><span class="nav-icon">✅</span><span class="nav-label">Reminders</span><span class="nav-badge" id="badge-reminders"></span></button>
+    <button class="nav-btn" data-app="notes"><span class="nav-icon">📝</span><span class="nav-label">Notes</span></button>
+    <button class="nav-btn" data-app="contacts"><span class="nav-icon">👤</span><span class="nav-label">Contacts</span></button>
+    <div class="nav-spacer"></div>
+    <button class="nav-btn" data-app="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
+  </nav>
+
+  <!-- ===================== MAIL ===================== -->
+  <main class="app-view" id="view-mail">
+    <aside class="pane pane-list">
+      <div class="pane-header">
+        <select id="mail-account-filter" class="select-plain" title="Account"></select>
+        <button class="btn btn-primary" id="btn-compose">✏️ Compose</button>
+      </div>
+      <div class="mail-folders" id="mail-folders"></div>
+      <input type="search" id="mail-search" class="search-input" placeholder="Search mail…">
+      <div class="mail-list" id="mail-list"></div>
+    </aside>
+    <section class="pane pane-detail" id="mail-detail">
+      <div class="empty-state">
+        <div class="empty-icon">✉️</div>
+        <p>Select a message to read</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== CALENDAR ===================== -->
+  <main class="app-view hidden" id="view-calendar">
+    <section class="pane pane-full">
+      <div class="pane-header">
+        <div class="cal-nav">
+          <button class="btn" id="cal-prev">‹</button>
+          <button class="btn" id="cal-today">Today</button>
+          <button class="btn" id="cal-next">›</button>
+        </div>
+        <h2 id="cal-title"></h2>
+        <button class="btn btn-primary" id="btn-new-event">＋ New Event</button>
+      </div>
+      <div class="cal-grid-head" id="cal-grid-head"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-upcoming">
+        <h3>Upcoming</h3>
+        <div id="cal-upcoming-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== REMINDERS ===================== -->
+  <main class="app-view hidden" id="view-reminders">
+    <section class="pane pane-full narrow">
+      <div class="pane-header">
+        <h2>Reminders</h2>
+        <button class="btn btn-primary" id="btn-new-reminder">＋ New Reminder</button>
+      </div>
+      <div class="segmented" id="reminder-filter">
+        <button data-f="all" class="active">All</button>
+        <button data-f="personal">Personal</button>
+        <button data-f="business">Business</button>
+        <button data-f="done">Completed</button>
+      </div>
+      <div id="reminder-list"></div>
+    </section>
+  </main>
+
+  <!-- ===================== NOTES ===================== -->
+  <main class="app-view hidden" id="view-notes">
+    <aside class="pane pane-list">
+      <div class="pane-header">
+        <h2>Notes</h2>
+        <button class="btn btn-primary" id="btn-new-note">＋</button>
+      </div>
+      <input type="search" id="note-search" class="search-input" placeholder="Search notes…">
+      <div id="note-list"></div>
+    </aside>
+    <section class="pane pane-detail" id="note-editor">
+      <div class="empty-state"><div class="empty-icon">📝</div><p>Select or create a note</p></div>
+    </section>
+  </main>
+
+  <!-- ===================== CONTACTS ===================== -->
+  <main class="app-view hidden" id="view-contacts">
+    <section class="pane pane-full narrow">
+      <div class="pane-header">
+        <h2>Contacts</h2>
+        <button class="btn btn-primary" id="btn-new-contact">＋ New Contact</button>
+      </div>
+      <input type="search" id="contact-search" class="search-input" placeholder="Search contacts…">
+      <div id="contact-list"></div>
+    </section>
+  </main>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <main class="app-view hidden" id="view-settings">
+    <section class="pane pane-full narrow">
+      <div class="pane-header"><h2>Settings</h2></div>
+
+      <div class="settings-group">
+        <h3>Email Accounts</h3>
+        <p class="hint">Add each mailbox you use — personal and company. Compose opens your real mail app (Apple Mail, Gmail…) via the account you pick.</p>
+        <div id="account-list"></div>
+        <button class="btn" id="btn-add-account">＋ Add Account</button>
+      </div>
+
+      <div class="settings-group">
+        <h3>Appearance</h3>
+        <div class="segmented" id="theme-picker">
+          <button data-t="auto">Auto</button>
+          <button data-t="light">Light</button>
+          <button data-t="dark">Dark</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Your Data</h3>
+        <p class="hint">Everything is stored privately in this browser. Export a backup or move it to another device.</p>
+        <div class="row-gap">
+          <button class="btn" id="btn-export">⬇️ Export Backup</button>
+          <button class="btn" id="btn-import">⬆️ Import Backup</button>
+          <button class="btn btn-danger" id="btn-reset">Reset All Data</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json" hidden>
+      </div>
+
+      <div class="settings-group">
+        <h3>Use on iPhone / iPad / Mac</h3>
+        <p class="hint">Open this page in Safari → Share → <strong>Add to Home Screen</strong> (or Dock on Mac) to install it like a native Apple app.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+<div class="modal-backdrop hidden" id="modal-backdrop"></div>
+
+<div class="modal hidden" id="modal-compose">
+  <h3>New Message</h3>
+  <label>From
+    <select id="compose-from"></select>
+  </label>
+  <label>To <input type="email" id="compose-to" placeholder="name@example.com" list="contact-emails"></label>
+  <datalist id="contact-emails"></datalist>
+  <label>Subject <input type="text" id="compose-subject"></label>
+  <label>Message <textarea id="compose-body" rows="8"></textarea></label>
+  <div class="modal-actions">
+    <button class="btn" data-close>Cancel</button>
+    <button class="btn" id="compose-save-draft">Save Draft</button>
+    <button class="btn btn-primary" id="compose-send">Send ↗</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-event">
+  <h3 id="event-modal-title">New Event</h3>
+  <label>Title <input type="text" id="event-title"></label>
+  <div class="row-gap">
+    <label>Date <input type="date" id="event-date"></label>
+    <label>Time <input type="time" id="event-time"></label>
+  </div>
+  <label>Category
+    <select id="event-cat">
+      <option value="personal">Personal</option>
+      <option value="business">Business</option>
+    </select>
+  </label>
+  <label>Notes <textarea id="event-notes" rows="3"></textarea></label>
+  <div class="modal-actions">
+    <button class="btn btn-danger hidden" id="event-delete">Delete</button>
+    <button class="btn" data-close>Cancel</button>
+    <button class="btn btn-primary" id="event-save">Save</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-reminder">
+  <h3>New Reminder</h3>
+  <label>Title <input type="text" id="reminder-title"></label>
+  <div class="row-gap">
+    <label>Due date <input type="date" id="reminder-date"></label>
+    <label>List
+      <select id="reminder-cat">
+        <option value="personal">Personal</option>
+        <option value="business">Business</option>
+      </select>
+    </label>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" data-close>Cancel</button>
+    <button class="btn btn-primary" id="reminder-save">Add</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-contact">
+  <h3 id="contact-modal-title">New Contact</h3>
+  <label>Name <input type="text" id="contact-name"></label>
+  <label>Email <input type="email" id="contact-email"></label>
+  <label>Phone <input type="tel" id="contact-phone"></label>
+  <div class="row-gap">
+    <label>Company <input type="text" id="contact-company"></label>
+    <label>Type
+      <select id="contact-type">
+        <option value="personal">Personal</option>
+        <option value="business">Business</option>
+      </select>
+    </label>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-danger hidden" id="contact-delete">Delete</button>
+    <button class="btn" data-close>Cancel</button>
+    <button class="btn btn-primary" id="contact-save">Save</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-account">
+  <h3>Add Email Account</h3>
+  <label>Label <input type="text" id="account-label" placeholder="e.g. Work, Personal"></label>
+  <label>Email address <input type="email" id="account-email" placeholder="you@company.com"></label>
+  <label>Type
+    <select id="account-type">
+      <option value="personal">Personal</option>
+      <option value="business">Business</option>
+    </select>
+  </label>
+  <div class="modal-actions">
+    <button class="btn" data-close>Cancel</button>
+    <button class="btn btn-primary" id="account-save">Add</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
