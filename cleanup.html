@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ff3b30">
+<title>Mail Sweeper — Clean Your Inboxes</title>
+<link rel="manifest" href="cleanup.webmanifest">
+<style>
+:root {
+  --bg: #f5f5f7; --pane: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+  --border: rgba(0,0,0,0.08); --accent: #ff3b30; --accent-soft: rgba(255,59,48,0.1);
+  --blue: #0071e3; --green: #34c759; --purple: #af52de; --orange: #ff9500;
+  --radius: 14px; --shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000; --pane: #1c1c1e; --text: #f5f5f7; --text-2: #98989d;
+    --border: rgba(255,255,255,0.1); --accent: #ff453a; --accent-soft: rgba(255,69,58,0.15);
+    --blue: #0a84ff; --shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
+  padding: 20px; max-width: 780px; margin: 0 auto;
+}
+header { text-align: center; padding: 18px 0 6px; }
+.app-icon {
+  width: 64px; height: 64px; border-radius: 15px; margin: 0 auto 12px;
+  background: linear-gradient(135deg, #ff3b30, #ff9500);
+  display: grid; place-items: center; font-size: 32px;
+}
+h1 { font-size: 24px; font-weight: 800; }
+.sub { color: var(--text-2); font-size: 14px; margin: 6px 0 14px; }
+.progress-wrap { background: var(--pane); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px; box-shadow: var(--shadow); }
+.progress-bar { height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--accent), var(--orange)); width: 0%; transition: width 0.4s; }
+.progress-label { font-size: 13px; font-weight: 600; }
+.phase { background: var(--pane); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; }
+.phase-head { display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; user-select: none; }
+.phase-num {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 700; color: #fff; font-size: 15px;
+}
+.phase-head h2 { font-size: 16px; flex: 1; }
+.phase-head .chev { color: var(--text-2); transition: transform 0.2s; }
+.phase.open .chev { transform: rotate(90deg); }
+.phase-body { display: none; padding: 0 16px 16px; }
+.phase.open .phase-body { display: block; }
+.step { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); align-items: flex-start; }
+.step input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--green); flex-shrink: 0; cursor: pointer; }
+.step-text { flex: 1; font-size: 14px; line-height: 1.5; }
+.step-text small { color: var(--text-2); display: block; }
+.step.done .step-text { text-decoration: line-through; color: var(--text-2); }
+.btn {
+  display: inline-block; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 13px; font-weight: 600; padding: 7px 12px;
+  border-radius: 8px; cursor: pointer; text-decoration: none; margin: 3px 4px 3px 0;
+  font-family: inherit;
+}
+.btn:active { transform: scale(0.97); }
+.btn-red { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-blue { background: var(--blue); border-color: var(--blue); color: #fff; }
+input[type="text"], input[type="email"] {
+  font-family: inherit; font-size: 14px; padding: 9px 12px; width: 100%;
+  border: 1px solid var(--border); border-radius: 9px; background: var(--bg);
+  color: var(--text); margin: 4px 0;
+}
+.target { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin: 10px 0; background: var(--bg); }
+.target-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.target-head .del { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text-2); font-size: 15px; }
+.target .links { margin-top: 8px; }
+.hint { font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+.recipe { background: var(--bg); border: 1px dashed var(--border); border-radius: 10px; padding: 12px; margin: 10px 0; font-size: 13px; }
+.recipe b { display: block; margin-bottom: 4px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.footer { text-align: center; padding: 20px 0; }
+.footer a { color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; }
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 12px;
+  font-size: 13.5px; font-weight: 500; z-index: 60; box-shadow: var(--shadow);
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="app-icon">🧹</div>
+  <h1>Mail Sweeper</h1>
+  <p class="sub">Clear the unread mountain, then keep it clean — no passwords, nothing leaves this device.</p>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-label"><span id="prog-text">0 of 0 steps done</span></div>
+  <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+</div>
+
+<!-- PHASE 1: STOP -->
+<div class="phase open" id="phase-1">
+  <div class="phase-head" data-toggle>
+    <div class="phase-num" style="background:var(--accent)">1</div>
+    <h2>Stop the flood at the source</h2>
+    <span class="chev">›</span>
+  </div>
+  <div class="phase-body">
+    <p class="hint">The biggest win: turn off the robots that send hundreds of emails a day.</p>
+    <div class="step" data-step="s1a">
+      <input type="checkbox">
+      <div class="step-text">Turn OFF TradingView email alerts
+        <small>Profile → Notifications → uncheck "Email" for alerts. Keep push notifications — you still get every alert on your phone, instantly.</small>
+        <a class="btn btn-blue" href="https://www.tradingview.com/u/#settings-notifications" target="_blank" rel="noopener">Open TradingView settings ↗</a>
+      </div>
+    </div>
+    <div class="step" data-step="s1b">
+      <input type="checkbox">
+      <div class="step-text">Turn off Vantage Markets daily confirmation emails
+        <small>Client portal → Settings → Notifications (or we auto-file them in Phase 3).</small>
+        <a class="btn btn-blue" href="https://secure.vantagemarkets.com/" target="_blank" rel="noopener">Open Vantage portal ↗</a>
+      </div>
+    </div>
+    <div class="step" data-step="s1c">
+      <input type="checkbox">
+      <div class="step-text">Unsubscribe from promo senders (MadMuscles etc.)
+        <small>Open one of their emails → scroll to the bottom → click Unsubscribe. Do this for each promo sender you see today.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 2: SWEEP -->
+<div class="phase" id="phase-2">
+  <div class="phase-head" data-toggle>
+    <div class="phase-num" style="background:var(--orange)">2</div>
+    <h2>Sweep the existing pile</h2>
+    <span class="chev">›</span>
+  </div>
+  <div class="phase-body">
+    <p class="hint">Each button opens that sender's entire pile in Gmail, already searched. Then: click the <b>select-all checkbox</b> → <b>"Select all conversations that match this search"</b> → <b>Delete</b>. Thousands gone in one sweep.</p>
+
+    <div class="row" style="margin:10px 0">
+      <input type="email" id="acct-input" placeholder="Add your Gmail / Workspace address…" style="flex:1;min-width:200px">
+      <button class="btn btn-blue" id="acct-add">Add account</button>
+    </div>
+    <div id="acct-list" class="row"></div>
+
+    <div class="row" style="margin:14px 0 4px">
+      <input type="text" id="target-input" placeholder="Add a sender to sweep (e.g. tradingview.com)…" style="flex:1;min-width:200px">
+      <button class="btn btn-red" id="target-add">Add sender</button>
+    </div>
+    <div id="target-list"></div>
+
+    <h3 style="font-size:14px;margin:16px 0 4px">Quick sweeps (any Gmail account)</h3>
+    <div id="quick-sweeps"></div>
+
+    <div class="step" data-step="s2x">
+      <input type="checkbox">
+      <div class="step-text">Exchange account: sweep in Outlook web
+        <small>Open Outlook → search the sender (e.g. <code>from:tradingview.com</code>) → select all → Delete.</small>
+        <a class="btn btn-blue" href="https://outlook.office.com/mail/" target="_blank" rel="noopener">Open Outlook web ↗</a>
+      </div>
+    </div>
+    <div class="step" data-step="s2z">
+      <input type="checkbox">
+      <div class="step-text">All senders above swept in every account</div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 3: SORT -->
+<div class="phase" id="phase-3">
+  <div class="phase-head" data-toggle>
+    <div class="phase-num" style="background:var(--purple)">3</div>
+    <h2>Sort the future automatically</h2>
+    <span class="chev">›</span>
+  </div>
+  <div class="phase-body">
+    <p class="hint">Create these rules once in Apple Mail on your iMac (<b>Mail → Settings → Rules → Add Rule</b>). They run forever, on everything that arrives.</p>
+    <div class="recipe"><b>Rule 1 — 📊 Trading</b>
+      If <i>From</i> contains <code>tradingview.com</code> → Move to mailbox "📊 Trading" + Mark as Read
+      <br><button class="btn" data-copy="tradingview.com">Copy sender</button>
+    </div>
+    <div class="recipe"><b>Rule 2 — 📊 Broker</b>
+      If <i>From</i> contains <code>vantagemarkets</code> → Move to "📊 Trading" + Mark as Read
+      <br><button class="btn" data-copy="vantagemarkets">Copy sender</button>
+    </div>
+    <div class="recipe"><b>Rule 3 — 📰 Newsletters</b>
+      If <i>Message content</i> contains <code>unsubscribe</code> → Move to "📰 Newsletters"
+      <br><button class="btn" data-copy="unsubscribe">Copy keyword</button>
+    </div>
+    <div class="step" data-step="s3a"><input type="checkbox"><div class="step-text">Created the "📊 Trading" and "📰 Newsletters" mailboxes <small>Mail → Mailbox menu → New Mailbox</small></div></div>
+    <div class="step" data-step="s3b"><input type="checkbox"><div class="step-text">Added all three rules in Apple Mail</div></div>
+    <div class="step" data-step="s3c"><input type="checkbox"><div class="step-text">When Mail asks "Apply to existing messages?" — clicked Apply</div></div>
+  </div>
+</div>
+
+<!-- PHASE 4: SHIELD -->
+<div class="phase" id="phase-4">
+  <div class="phase-head" data-toggle>
+    <div class="phase-num" style="background:var(--green)">4</div>
+    <h2>Shield what matters</h2>
+    <span class="chev">›</span>
+  </div>
+  <div class="phase-body">
+    <div class="step" data-step="s4a">
+      <input type="checkbox">
+      <div class="step-text">Make key people VIPs
+        <small>In Apple Mail, open an email from an important client → click their name → Add to VIPs. VIP mail gets its own mailbox + special alerts on every device.</small>
+      </div>
+    </div>
+    <div class="step" data-step="s4b">
+      <input type="checkbox">
+      <div class="step-text">Turn on junk filtering
+        <small>Mail → Settings → Junk Mail → Enable junk mail filtering.</small>
+      </div>
+    </div>
+    <div class="step" data-step="s4c">
+      <input type="checkbox">
+      <div class="step-text">Set a weekly 10-minute sweep
+        <small>Every Friday: open Mail Sweeper, re-run Phase 2 quick sweeps. The pile never comes back.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <a href="index.html">← Back to AB Workspace</a>
+</div>
+
+<script>
+(() => {
+"use strict";
+const KEY = "mail-sweeper-v1";
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || null; } catch { S = null; }
+if (!S) S = {
+  steps: {},
+  accounts: ["arshad@abkreative.com", "hello@abkreative.com"],
+  targets: ["tradingview.com", "vantagemarkets.com", "madmuscles.com"],
+};
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+let toastTimer;
+function toast(msg) {
+  $("#toast")?.remove();
+  const el = document.createElement("div");
+  el.id = "toast"; el.textContent = msg;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 2400);
+}
+
+/* Phases expand/collapse */
+$$("[data-toggle]").forEach((h) => h.addEventListener("click", () => h.parentElement.classList.toggle("open")));
+
+/* Checkbox steps + progress */
+function bindSteps() {
+  $$(".step").forEach((st) => {
+    const id = st.dataset.step;
+    const cb = st.querySelector('input[type="checkbox"]');
+    if (!cb || cb.dataset.bound) return;
+    cb.dataset.bound = "1";
+    cb.checked = !!S.steps[id];
+    st.classList.toggle("done", cb.checked);
+    cb.addEventListener("change", () => {
+      S.steps[id] = cb.checked; save();
+      st.classList.toggle("done", cb.checked);
+      updateProgress();
+      if (cb.checked) toast("Step done ✅");
+    });
+  });
+}
+function updateProgress() {
+  const boxes = $$('.step input[type="checkbox"]');
+  const done = boxes.filter((b) => b.checked).length;
+  $("#prog-text").textContent = `${done} of ${boxes.length} steps done` + (done === boxes.length && boxes.length ? " — inbox zero hero! 🎉" : "");
+  $("#prog-fill").style.width = boxes.length ? (done / boxes.length * 100) + "%" : "0%";
+}
+
+/* Accounts */
+function gmailSearch(account, query) {
+  return `https://mail.google.com/mail/?authuser=${encodeURIComponent(account)}#search/${encodeURIComponent(query)}`;
+}
+function renderAccounts() {
+  $("#acct-list").innerHTML = S.accounts.map((a, i) =>
+    `<span class="btn" style="cursor:default">${esc(a)} <b data-adel="${i}" style="cursor:pointer;margin-left:4px">✕</b></span>`).join("");
+  $$("[data-adel]").forEach((b) => b.addEventListener("click", () => {
+    S.accounts.splice(+b.dataset.adel, 1); save(); renderAccounts(); renderTargets(); renderQuick();
+  }));
+}
+$("#acct-add").addEventListener("click", () => {
+  const v = $("#acct-input").value.trim();
+  if (!v || S.accounts.includes(v)) return;
+  S.accounts.push(v); $("#acct-input").value = "";
+  save(); renderAccounts(); renderTargets(); renderQuick();
+});
+
+/* Sweep targets */
+function renderTargets() {
+  $("#target-list").innerHTML = S.targets.map((t, i) => `
+    <div class="target">
+      <div class="target-head">🎯 ${esc(t)} <button class="del" data-tdel="${i}" title="Remove">✕</button></div>
+      <div class="links">
+        ${S.accounts.map((a) => `<a class="btn btn-red" target="_blank" rel="noopener" href="${gmailSearch(a, "from:" + t)}">Sweep in ${esc(a.split("@")[0])}@… ↗</a>`).join("")}
+      </div>
+    </div>`).join("") || `<p class="hint">No senders yet — add the ones flooding you.</p>`;
+  $$("[data-tdel]").forEach((b) => b.addEventListener("click", () => {
+    S.targets.splice(+b.dataset.tdel, 1); save(); renderTargets();
+  }));
+}
+$("#target-add").addEventListener("click", () => {
+  const v = $("#target-input").value.trim().replace(/^from:/i, "");
+  if (!v || S.targets.includes(v)) return;
+  S.targets.push(v); $("#target-input").value = "";
+  save(); renderTargets();
+});
+$("#target-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#target-add").click(); });
+$("#acct-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#acct-add").click(); });
+
+/* Quick sweeps */
+const QUICK = [
+  ["Promotions older than 30 days", "category:promotions older_than:30d"],
+  ["Social notifications", "category:social"],
+  ["Unread older than 1 year", "is:unread older_than:1y"],
+  ["Newsletters (has unsubscribe)", "unsubscribe is:unread"],
+];
+function renderQuick() {
+  $("#quick-sweeps").innerHTML = QUICK.map(([label, q]) => `
+    <div class="target">
+      <div class="target-head">⚡ ${label}</div>
+      <div class="links">
+        ${S.accounts.map((a) => `<a class="btn" target="_blank" rel="noopener" href="${gmailSearch(a, q)}">${esc(a.split("@")[0])}@… ↗</a>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+/* Copy buttons */
+$$("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(b.dataset.copy); toast("Copied: " + b.dataset.copy); }
+  catch { toast("Copy failed — select it manually"); }
+}));
+
+renderAccounts();
+renderTargets();
+renderQuick();
+bindSteps();
+updateProgress();
+})();
+</script>
+</body>
+</html>

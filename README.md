@@ -12,6 +12,7 @@ A private, Apple-style productivity hub for managing **personal and business lif
 | 📝 **Notes** | Searchable notes with autosave, Apple Notes-style list + editor layout. |
 | 👤 **Contacts** | Personal/business contacts with one-tap **email** and **call** links. |
 | ⚙️ **Settings** | Add/remove email accounts, light/dark/auto theme, and full backup export/import as JSON. |
+| 🧹 **Mail Sweeper** (`cleanup.html`) | A separate companion app for clearing overflowing inboxes: guided phases (Stop → Sweep → Sort → Shield), one-tap Gmail deep-link sweeps per sender per account, ready-to-copy Apple Mail rules, and saved progress. Installable with its own icon. |
 
 ## Privacy
 
