@@ -113,6 +113,115 @@ const avatarColor = (name) => {
 };
 
 /* ============================================================
+   APPLE HAND-OFF (.ics events, .vcf contacts)
+   ============================================================ */
+function downloadFile(name, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+const icsEsc = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/[,;]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+
+function icsForEvent(e) {
+  const d = e.date.replace(/-/g, "");
+  let dtStart, dtEnd;
+  if (e.time) {
+    const t = e.time.replace(":", "");
+    dtStart = `DTSTART:${d}T${t}00`;
+    const [h, m] = e.time.split(":").map(Number);
+    const end = new Date(2000, 0, 1, h + 1, m);
+    dtEnd = `DTEND:${d}T${String(end.getHours()).padStart(2, "0")}${String(end.getMinutes()).padStart(2, "0")}00`;
+  } else {
+    dtStart = `DTSTART;VALUE=DATE:${d}`;
+    dtEnd = "";
+  }
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AB Workspace//EN", "BEGIN:VEVENT",
+    `UID:${e.id || uid()}@ab-workspace`, dtStart, dtEnd,
+    `SUMMARY:${icsEsc(e.title)}`,
+    e.notes ? `DESCRIPTION:${icsEsc(e.notes)}` : "",
+    `CATEGORIES:${e.cat === "business" ? "Business" : "Personal"}`,
+    "END:VEVENT", "END:VCALENDAR"].filter(Boolean).join("\r\n");
+}
+
+function vcfForContact(c) {
+  return ["BEGIN:VCARD", "VERSION:3.0",
+    `FN:${c.name}`, `N:${c.name};;;;`,
+    c.company ? `ORG:${c.company}` : "",
+    c.email ? `EMAIL;TYPE=INTERNET:${c.email}` : "",
+    c.phone ? `TEL;TYPE=CELL:${c.phone}` : "",
+    "END:VCARD"].filter(Boolean).join("\r\n");
+}
+
+/* ============================================================
+   TODAY
+   ============================================================ */
+function renderToday() {
+  const now = new Date();
+  const h = now.getHours();
+  $("#today-greeting").textContent = h < 12 ? "Good morning ☀️" : h < 18 ? "Good afternoon 🌤" : "Good evening 🌙";
+  $("#today-date").textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
+  // Mail summary per account
+  const parts = S.accounts.map((a) => {
+    const n = S.emails.filter((m) => m.accountId === a.id && m.folder === "inbox" && !m.read).length;
+    return `<div class="today-row"><span class="acct-tag ${a.type}">${a.type === "business" ? "Biz" : "Me"}</span> ${esc(a.label)}: <strong>${n} unread</strong></div>`;
+  });
+  $("#today-mail-summary").innerHTML = parts.join("") || `<p class="hint">No accounts set up.</p>`;
+
+  // Events today + tomorrow
+  const iso = (d) => d.toLocaleDateString("sv");
+  const todayIso = iso(now);
+  const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+  const tomorrowIso = iso(tomorrow);
+  const evs = S.events
+    .filter((e) => e.date === todayIso || e.date === tomorrowIso)
+    .sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
+  $("#today-events").innerHTML = evs.length ? evs.map((e) => `
+    <div class="today-row">
+      <span class="up-dot ${e.cat}"></span>
+      <span class="today-when">${e.date === todayIso ? "Today" : "Tomorrow"}${e.time ? " " + e.time : ""}</span>
+      <span class="today-what">${esc(e.title)}</span>
+      <button class="icon-btn" data-ics="${e.id}" title="Add to Apple Calendar"></button>
+    </div>`).join("")
+    : `<p class="hint">Nothing scheduled — clear runway.</p>`;
+  $$("#today-events [data-ics]").forEach((b) => b.addEventListener("click", () => {
+    const e = S.events.find((x) => x.id === b.dataset.ics);
+    if (e) { downloadFile(`${e.title}.ics`, icsForEvent(e), "text/calendar"); toast("Open the download to add it to Apple Calendar"); }
+  }));
+
+  // Tasks: overdue + today + undated (top 8)
+  const tasks = S.reminders
+    .filter((r) => !r.done && (!r.date || r.date <= todayIso))
+    .sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"))
+    .slice(0, 8);
+  $("#today-tasks").innerHTML = tasks.length ? tasks.map((r) => `
+    <div class="today-row">
+      <button class="rem-check" data-tcheck="${r.id}" title="Done">✓</button>
+      <span class="today-what">${esc(r.title)}</span>
+      ${r.date && r.date < todayIso ? `<span class="rem-due overdue">Overdue</span>` : ""}
+    </div>`).join("")
+    : `<p class="hint">All caught up ✅</p>`;
+  $$("#today-tasks [data-tcheck]").forEach((b) => b.addEventListener("click", () => {
+    const r = S.reminders.find((x) => x.id === b.dataset.tcheck);
+    if (r) { r.done = true; save(); renderReminders(); renderToday(); toast("Nice — done!"); }
+  }));
+}
+
+$("#today-open-mail").addEventListener("click", () => switchApp("mail"));
+$("#today-compose").addEventListener("click", () => openCompose());
+$("#today-quick-task").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  const title = e.target.value.trim();
+  if (!title) return;
+  S.reminders.push({ id: uid(), title, date: new Date().toLocaleDateString("sv"), cat: "personal", done: false });
+  e.target.value = "";
+  save(); renderReminders(); renderToday(); toast("Task added for today");
+});
+
+/* ============================================================
    MAIL
    ============================================================ */
 let mailFolder = "inbox";
@@ -360,11 +469,22 @@ $("#event-save").addEventListener("click", () => {
   };
   if (editingEventId) Object.assign(S.events.find((x) => x.id === editingEventId), data);
   else S.events.push({ id: uid(), ...data });
-  save(); renderCalendar(); closeModals(); toast("Event saved");
+  save(); renderCalendar(); renderToday(); closeModals(); toast("Event saved");
 });
 $("#event-delete").addEventListener("click", () => {
   S.events = S.events.filter((x) => x.id !== editingEventId);
-  save(); renderCalendar(); closeModals(); toast("Event deleted");
+  save(); renderCalendar(); renderToday(); closeModals(); toast("Event deleted");
+});
+$("#event-apple").addEventListener("click", () => {
+  const title = $("#event-title").value.trim() || "Event";
+  const ev = {
+    id: editingEventId || uid(), title,
+    date: $("#event-date").value, time: $("#event-time").value,
+    cat: $("#event-cat").value, notes: $("#event-notes").value,
+  };
+  if (!ev.date) { toast("Pick a date first"); return; }
+  downloadFile(`${title}.ics`, icsForEvent(ev), "text/calendar");
+  toast("Open the download — it lands in Apple Calendar & syncs everywhere");
 });
 
 /* ============================================================
@@ -537,6 +657,16 @@ $("#contact-delete").addEventListener("click", () => {
   S.contacts = S.contacts.filter((x) => x.id !== editingContactId);
   save(); renderContacts(); closeModals(); toast("Contact deleted");
 });
+$("#contact-apple").addEventListener("click", () => {
+  const c = {
+    name: $("#contact-name").value.trim() || "Contact",
+    email: $("#contact-email").value.trim(),
+    phone: $("#contact-phone").value.trim(),
+    company: $("#contact-company").value.trim(),
+  };
+  downloadFile(`${c.name}.vcf`, vcfForContact(c), "text/vcard");
+  toast("Open the download — it saves into Apple Contacts & syncs everywhere");
+});
 
 /* ============================================================
    SETTINGS
@@ -615,6 +745,7 @@ function updateBadges() {
   const todayIso = new Date().toLocaleDateString("sv");
   const due = S.reminders.filter((r) => !r.done && r.date && r.date <= todayIso).length;
   $("#badge-reminders").textContent = due || "";
+  renderToday();
 }
 
 function renderAll() {
@@ -625,6 +756,7 @@ function renderAll() {
   renderNoteList();
   renderContacts();
   renderAccounts();
+  renderToday();
   updateBadges();
 }
 
