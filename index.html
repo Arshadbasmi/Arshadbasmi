@@ -18,7 +18,8 @@
       <div class="brand-icon">AB</div>
       <div class="brand-name">Workspace</div>
     </div>
-    <button class="nav-btn active" data-app="mail"><span class="nav-icon">✉️</span><span class="nav-label">Mail</span><span class="nav-badge" id="badge-mail"></span></button>
+    <button class="nav-btn active" data-app="today"><span class="nav-icon">☀️</span><span class="nav-label">Today</span></button>
+    <button class="nav-btn" data-app="mail"><span class="nav-icon">✉️</span><span class="nav-label">Mail</span><span class="nav-badge" id="badge-mail"></span></button>
     <button class="nav-btn" data-app="calendar"><span class="nav-icon">📅</span><span class="nav-label">Calendar</span></button>
     <button class="nav-btn" data-app="reminders"><span class="nav-icon">✅</span><span class="nav-label">Reminders</span><span class="nav-badge" id="badge-reminders"></span></button>
     <button class="nav-btn" data-app="notes"><span class="nav-icon">📝</span><span class="nav-label">Notes</span></button>
@@ -27,8 +28,39 @@
     <button class="nav-btn" data-app="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
   </nav>
 
+  <!-- ===================== TODAY ===================== -->
+  <main class="app-view" id="view-today">
+    <section class="pane pane-full narrow">
+      <div class="pane-header">
+        <div>
+          <h2 id="today-greeting">Good day</h2>
+          <div class="hint" id="today-date"></div>
+        </div>
+      </div>
+      <div class="today-grid">
+        <div class="today-card">
+          <h3>✉️ Mail</h3>
+          <div id="today-mail-summary"></div>
+          <div class="row-gap" style="margin-top:10px">
+            <button class="btn" id="today-open-mail">Open Inbox</button>
+            <button class="btn btn-primary" id="today-compose">✏️ Compose</button>
+          </div>
+        </div>
+        <div class="today-card">
+          <h3>📅 Today &amp; Tomorrow</h3>
+          <div id="today-events"></div>
+        </div>
+        <div class="today-card">
+          <h3>✅ Tasks</h3>
+          <div id="today-tasks"></div>
+          <input type="text" id="today-quick-task" placeholder="＋ Add a task for today… (press Enter)">
+        </div>
+      </div>
+    </section>
+  </main>
+
   <!-- ===================== MAIL ===================== -->
-  <main class="app-view" id="view-mail">
+  <main class="app-view hidden" id="view-mail">
     <aside class="pane pane-list">
       <div class="pane-header">
         <select id="mail-account-filter" class="select-plain" title="Account"></select>
@@ -144,6 +176,16 @@
       </div>
 
       <div class="settings-group">
+        <h3> Apple Integration</h3>
+        <p class="hint">This app hands work to Apple's apps, and iCloud syncs it to every device:</p>
+        <p class="hint">• <strong>Events</strong> → "Add to Apple Calendar" downloads an invite; open it and it lands in Apple Calendar on all your devices.<br>
+        • <strong>Contacts</strong> → "Add to Apple Contacts" downloads a card; open it to save into Apple Contacts everywhere.<br>
+        • <strong>Email</strong> → Send opens Apple Mail with your message ready, from your real accounts.<br>
+        • <strong>Calls</strong> → the 📞 button dials through your iPhone/Mac.</p>
+        <p class="hint">Make sure iCloud sync is on for Calendar and Contacts on each device (System Settings → your name → iCloud).</p>
+      </div>
+
+      <div class="settings-group">
         <h3>Use on iPhone / iPad / Mac</h3>
         <p class="hint">Open this page in Safari → Share → <strong>Add to Home Screen</strong> (or Dock on Mac) to install it like a native Apple app.</p>
       </div>
@@ -186,6 +228,7 @@
   <label>Notes <textarea id="event-notes" rows="3"></textarea></label>
   <div class="modal-actions">
     <button class="btn btn-danger hidden" id="event-delete">Delete</button>
+    <button class="btn" id="event-apple" title="Downloads an invite that opens in Apple Calendar and syncs to all your devices via iCloud"> Add to Apple Calendar</button>
     <button class="btn" data-close>Cancel</button>
     <button class="btn btn-primary" id="event-save">Save</button>
   </div>
@@ -225,6 +268,7 @@
   </div>
   <div class="modal-actions">
     <button class="btn btn-danger hidden" id="contact-delete">Delete</button>
+    <button class="btn" id="contact-apple" title="Downloads a card that opens in Apple Contacts and syncs to all your devices via iCloud"> Add to Apple Contacts</button>
     <button class="btn" data-close>Cancel</button>
     <button class="btn btn-primary" id="contact-save">Save</button>
   </div>

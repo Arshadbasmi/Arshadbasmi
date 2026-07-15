@@ -171,6 +171,29 @@ label { display: block; font-size: 13px; color: var(--text-2); font-weight: 500;
 }
 .segmented button.active { background: var(--pane-solid); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 
+/* ===== Today ===== */
+.today-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+.today-card {
+  background: var(--pane-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.today-card h3 { font-size: 15px; margin-bottom: 10px; }
+.today-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.today-row:last-of-type { border-bottom: none; }
+.today-when { color: var(--text-2); font-size: 12px; min-width: 88px; flex-shrink: 0; }
+.today-what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#today-quick-task { margin-top: 10px; margin-bottom: 0; }
+
 /* ===== Mail ===== */
 .mail-folders { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .folder-chip {
