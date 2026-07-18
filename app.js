@@ -146,6 +146,15 @@ function icsForEvent(e) {
     "END:VEVENT", "END:VCALENDAR"].filter(Boolean).join("\r\n");
 }
 
+function icsForTodo(r) {
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AB Workspace//EN", "BEGIN:VTODO",
+    `UID:${r.id}@ab-workspace`,
+    `SUMMARY:${icsEsc(r.title)}`,
+    r.date ? `DUE;VALUE=DATE:${r.date.replace(/-/g, "")}` : "",
+    "STATUS:NEEDS-ACTION",
+    "END:VTODO", "END:VCALENDAR"].filter(Boolean).join("\r\n");
+}
+
 function vcfForContact(c) {
   return ["BEGIN:VCARD", "VERSION:3.0",
     `FN:${c.name}`, `N:${c.name};;;;`,
@@ -305,6 +314,7 @@ function openMail(id) {
       <div class="mail-detail-row">To: ${esc(m.to)}</div>
       <div class="mail-actions">
         <button class="btn" id="mail-reply">↩️ Reply</button>
+        <button class="btn" id="mail-task" title="Adds a task due today to reply to this email">➕ Make Task</button>
         <button class="btn" id="mail-star">${m.starred ? "★ Unstar" : "☆ Star"}</button>
         <button class="btn" id="mail-unread">Mark Unread</button>
         ${m.folder !== "archive" ? `<button class="btn" id="mail-archive">🗂 Archive</button>` : ""}
@@ -319,6 +329,16 @@ function openMail(id) {
       subject: (m.subject.startsWith("Re:") ? "" : "Re: ") + m.subject,
       body: `\n\n---- On ${new Date(m.date).toLocaleString()}, ${m.from} wrote:\n${m.body}`,
     });
+  });
+  $("#mail-task").addEventListener("click", () => {
+    S.reminders.push({
+      id: uid(),
+      title: `Reply: ${m.subject || m.from}`,
+      date: new Date().toLocaleDateString("sv"),
+      cat: a?.type === "business" ? "business" : "personal",
+      done: false,
+    });
+    save(); renderReminders(); toast("Task added: reply to this email");
   });
   $("#mail-star").addEventListener("click", () => { m.starred = !m.starred; save(); renderMail(); openMail(id); });
   $("#mail-unread").addEventListener("click", () => { m.read = false; mailSelected = null; save(); renderMail(); resetMailDetail(); });
@@ -509,6 +529,7 @@ function renderReminders() {
         ${r.date ? `<div class="rem-due ${!r.done && r.date < todayIso ? "overdue" : ""}">${fmtDate(r.date)}${!r.done && r.date < todayIso ? " · Overdue" : ""}</div>` : ""}
       </div>
       <span class="acct-tag ${r.cat}">${r.cat === "business" ? "Biz" : "Me"}</span>
+      <button class="icon-btn" data-todo="${r.id}" title="Send to Apple Reminders (open the download on your Mac)"></button>
       <button class="icon-btn" data-del="${r.id}" title="Delete">🗑</button>
     </div>`).join("")
     : `<div class="empty-state" style="padding:60px 0"><div class="empty-icon">✅</div><p>Nothing here — enjoy the calm</p></div>`;
@@ -516,6 +537,10 @@ function renderReminders() {
   $$(".rem-check").forEach((b) => b.addEventListener("click", () => {
     const r = S.reminders.find((x) => x.id === b.dataset.id);
     r.done = !r.done; save(); renderReminders(); updateBadges();
+  }));
+  $$("[data-todo]").forEach((b) => b.addEventListener("click", () => {
+    const r = S.reminders.find((x) => x.id === b.dataset.todo);
+    if (r) { downloadFile(`${r.title}.ics`, icsForTodo(r), "text/calendar"); toast("Open the download on your Mac — it imports into Apple Reminders"); }
   }));
   $$("[data-del]").forEach((b) => b.addEventListener("click", () => {
     S.reminders = S.reminders.filter((x) => x.id !== b.dataset.del);
@@ -567,7 +592,11 @@ function openNote(id) {
   $("#note-editor").innerHTML = `
     <div class="note-toolbar">
       <span class="note-date">Edited ${new Date(n.updated).toLocaleString()}</span>
-      <button class="btn btn-danger" id="note-delete">🗑 Delete</button>
+      <span>
+        <button class="btn" id="note-copy" title="Copies the note — open Apple Notes and paste"> Copy for Apple Notes</button>
+        <button class="btn" id="note-txt" title="Download as a text file">⬇️ .txt</button>
+        <button class="btn btn-danger" id="note-delete">🗑 Delete</button>
+      </span>
     </div>
     <input id="note-title-input" placeholder="Title" value="${esc(n.title)}">
     <textarea id="note-body-input" placeholder="Start writing…">${esc(n.body)}</textarea>`;
@@ -579,6 +608,15 @@ function openNote(id) {
   };
   $("#note-title-input").addEventListener("input", persist);
   $("#note-body-input").addEventListener("input", persist);
+  $("#note-copy").addEventListener("click", async () => {
+    const text = ($("#note-title-input").value ? $("#note-title-input").value + "\n\n" : "") + $("#note-body-input").value;
+    try { await navigator.clipboard.writeText(text); toast("Copied — open Apple Notes and paste"); }
+    catch { toast("Copy blocked — select the text manually"); }
+  });
+  $("#note-txt").addEventListener("click", () => {
+    const title = $("#note-title-input").value.trim() || "Note";
+    downloadFile(`${title}.txt`, ($("#note-title-input").value ? $("#note-title-input").value + "\n\n" : "") + $("#note-body-input").value, "text/plain");
+  });
   $("#note-delete").addEventListener("click", () => {
     S.notes = S.notes.filter((x) => x.id !== id);
     noteSelected = null; save(); renderNoteList();
